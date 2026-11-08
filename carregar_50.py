@@ -1,9 +1,16 @@
 import json, subprocess, urllib.request, time, sys, os
 
-BASE = "http://127.0.0.1:8099"
+import shutil
+from pathlib import Path
+
+PORT = os.environ.get("JOGO_PORT", "8099")
+BASE = os.environ.get("JOGO_URL", f"http://127.0.0.1:{PORT}")
 KEY = os.environ.get("JOGO_KEY", "troque-esta-chave")
-YT = "/home/miguel/workspace/jogo-reverso/.venv/bin/yt-dlp"
-NODE = "/home/miguel/.hermes/node/bin/node"
+_HERE = Path(__file__).resolve().parent
+YT = os.environ.get("JOGO_YTDLP") or str(_HERE / ".venv" / "bin" / "yt-dlp")
+if not Path(YT).exists():
+    YT = shutil.which("yt-dlp") or "yt-dlp"
+NODE = os.environ.get("JOGO_NODE") or shutil.which("node") or ""
 
 MUSICAS = [
  "Jorge e Mateus Propaganda", "Marilia Mendonca Infiel", "Henrique e Juliano Vai Namorar Comigo",

@@ -62,10 +62,14 @@
   <div class="right">
     <div class="rtitle">Placar</div>
     <div class="plist" id="plist"><div class="empty">Ninguém entrou ainda</div></div>
-    <div class="footer">192.168.0.81:8099</div>
+    <div class="footer" id="tvhost"></div>
   </div>
 <script>
 const $ = s => document.querySelector(s);
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('tvhost');
+  if(el) el.textContent = location.host;
+});
 let ws, st, prev;
 
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
