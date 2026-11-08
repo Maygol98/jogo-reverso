@@ -425,6 +425,20 @@ async def health():
             "phase": DB["phase"], "players": len(DB["players"])}
 
 
+@app.get("/media/full/{tid}.mp3")
+async def media_full(tid: str):
+    """Áudio completo do YouTube (para a revelação tocar até o fim)."""
+    t = next((x for x in DB["tracks"] if x["id"] == tid), None)
+    if not t:
+        raise HTTPException(404, "faixa não encontrada")
+    ytid = t.get("ytid") or ""
+    p = RAW / f"{ytid}.mp3"
+    if not ytid or not p.exists():
+        raise HTTPException(404, "áudio completo não disponível")
+    return FileResponse(p, media_type="audio/mpeg",
+                        headers={"Cache-Control": "no-store"})
+
+
 @app.get("/media/normal/{tid}.mp3")
 async def media_normal(tid: str):
     p = MEDIA / f"{tid}_n.mp3"

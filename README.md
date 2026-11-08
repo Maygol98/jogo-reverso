@@ -21,6 +21,11 @@ O clipe invertido é o trecho de 60s espelhado, então o segundo `t` do reverso
 equivale a `duração - t` do original. Ao trocar o toggle para **Original**
 depois de um acerto, o áudio retoma nesse segundo exato (sem corte entre os dois).
 
+Em **Original** o admin toca o **áudio completo** (`/media/full/<id>.mp3`, servido
+de `media/raw/<ytid>.mp3`), então a música segue até o fim em vez de parar no
+trecho. Faixas sem o arquivo completo caem automaticamente no trecho de 60s,
+na posição equivalente.
+
 ## Serviço
 
 ```bash

@@ -536,11 +536,15 @@ function setPlayIcon(tocando){ const b = $('#btnPlay'); if(b) b.innerHTML = toca
 /* ---------------- áudio ---------------- */
 let modo = 'rev';          // 'rev' = jogo | 'orig' = de frente pra trás
 
+let fullOk = true;        // a faixa tem o áudio completo pro modo original?
+let ultDurRev = 60, ultPosRev = 0;
+
 function srcAtual(){
   if(!st || !st.current) return '';
-  return modo === 'orig'
-    ? '/media/normal/' + st.current.id + '.mp3'
-    : '/media/' + st.current.id + '.mp3';
+  if(modo === 'orig'){
+    return (fullOk ? '/media/full/' : '/media/normal/') + st.current.id + '.mp3';
+  }
+  return '/media/' + st.current.id + '.mp3';
 }
 
 function setModo(m, opts){
@@ -561,12 +565,16 @@ function setModo(m, opts){
 
 // O clipe invertido é o trecho de 60s espelhado: o segundo t do reverso
 // corresponde a (duração - t) do original — dá pra emendar sem corte.
+// Segundo do arquivo completo que casa com a posição atual do clipe invertido:
+// o trecho começa em `offset`, e o instante t do reverso é (duração - t) dentro dele.
 function posicaoEspelhada(){
-  const dur = au.duration;
-  if(!isFinite(dur) || dur <= 0) return null;
-  const t = au.currentTime;
-  if(!isFinite(t) || t <= 0.05) return null;
-  return Math.max(0, Math.min(dur - 0.05, dur - t));
+  const dur = (isFinite(au.duration) && au.duration > 0) ? au.duration : 60;
+  const t = isFinite(au.currentTime) ? au.currentTime : 0;
+  ultDurRev = dur;
+  ultPosRev = t;
+  const dentro = t > 0.05 ? Math.max(0, dur - t) : 0;
+  const off = (st && st.current && Number(st.current.offset)) || 0;
+  return fullOk ? off + dentro : dentro;
 }
 
 function seekEPlay(t){
@@ -612,7 +620,17 @@ au.addEventListener('timeupdate', () => {
 });
 au.addEventListener('playing', () => setPlayIcon(true));
 au.addEventListener('pause', () => setPlayIcon(false));
-au.addEventListener('error', () => { if(curSrc) toast('Não foi possível tocar este áudio.', true); });
+au.addEventListener('error', () => {
+  // faixa sem áudio completo: cai pro trecho normal, na posição equivalente
+  if(modo === 'orig' && fullOk && st && st.current){
+    fullOk = false;
+    setSrc(srcAtual(), true);
+    seekEPlay(Math.max(0, ultDurRev - ultPosRev));
+    toast('Esta faixa não tem o áudio completo — toca só o trecho.', true);
+    return;
+  }
+  if(curSrc) toast('Não foi possível tocar este áudio.', true);
+});
 
 $('#bar').addEventListener('click', ev => {
   if(!au.duration) return;
@@ -658,6 +676,7 @@ function render(){
   if(st.current && st.current.id !== lastTrackId){
     lastTrackId = st.current.id;
     if(modo !== 'rev') setModo('rev');
+    fullOk = true;
     curSrc = '';
     setSrc(srcAtual());
   }
@@ -777,7 +796,11 @@ $('#btnNo').onclick = () => judge(false);
 $('#btnPlay').onclick = async () => {
   if(!st || !st.started) return;
   if(au.paused){
-    if(modo === 'orig'){ setSrc(srcAtual(), true); playLocal(true); return; }
+    if(modo === 'orig'){
+      setSrc(srcAtual(), true);
+      seekEPlay((st.current && Number(st.current.offset)) || 0);
+      return;
+    }
     await api('/api/resume');
     playLocal(false);
   } else {
