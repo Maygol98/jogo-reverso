@@ -118,6 +118,14 @@
     border-right:1px solid #1c2230;transform:translateX(-105%);transition:transform .22s ease;
     z-index:50;padding:18px 20px 24px;display:flex;flex-direction:column;gap:12px;overflow:auto}
   #drawer.open{transform:none}
+  .credits{margin-top:auto;padding-top:16px;text-align:center}
+  .ctitle{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#6d7688;
+    font-weight:800;margin-bottom:10px}
+  .cgroup{margin-bottom:9px}
+  .clabel{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#5b6474;font-weight:700}
+  .cvalue{font-size:13px;color:#cfd6e3;margin-top:2px}
+  .cmeme{display:block;margin:12px auto 8px;width:104px;height:auto;border-radius:8px}
+  .cend{font-size:10px;color:#4d5566;font-style:italic}
   .dhead{display:flex;align-items:center;justify-content:space-between;font-size:13px;
     letter-spacing:.16em;text-transform:uppercase;color:#8b95a7;font-weight:800}
   .dlabel{font-size:12.5px;color:#7a8496;line-height:1.5}
@@ -226,6 +234,8 @@
   html[data-theme="light"] #drawer{background:#fff;border-right-color:#e3e7ef}
   html[data-theme="light"] .dhead{color:#6b7484}
   html[data-theme="light"] .dlabel,html[data-theme="light"] .dhelp{color:#5d6675}
+  html[data-theme="light"] .cvalue{color:#333c4c}
+  html[data-theme="light"] .cend{color:#98a0b0}
   html[data-theme="light"] .durl{color:#10151f}
   html[data-theme="light"] .dsep{background:#e6e9f0}
   html[data-theme="light"] .bar{background:#e2e6ee}
@@ -379,6 +389,20 @@
   </ol>
   <div class="dsep"></div>
   <div class="dlabel">Fonte das músicas: YouTube. Cada rodada toca 60 segundos invertidos; o trecho normal fica no botão do player.</div>
+
+  <div class="credits">
+    <div class="ctitle">Créditos</div>
+    <div class="cgroup">
+      <div class="clabel">Criadores</div>
+      <div class="cvalue">Miguel e Hermes</div>
+    </div>
+    <div class="cgroup">
+      <div class="clabel">Inspiração</div>
+      <div class="cvalue">Jogo do Neemias</div>
+    </div>
+    <img class="cmeme" src="/static/img/obrigado-amigo.png" alt="Obrigado, amigo, você é um amigo">
+    <div class="cend">Fim dos créditos</div>
+  </div>
 </aside>
 
 <div id="toast"></div>
