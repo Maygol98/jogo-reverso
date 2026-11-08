@@ -297,6 +297,10 @@ Miguel feat. Hermes Agent
 Inspiração:
 Jogo do Neemias
 
+<p align="center">
+  <img src="static/img/obrigado-amigo.png" width="150" alt="Obrigado, amigo, você é um amigo">
+</p>
+
 ---
 
 ## Licença
