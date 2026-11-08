@@ -12,6 +12,8 @@ import os
 import random
 import re
 import secrets
+import shutil
+import socket
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -34,15 +36,33 @@ for _d in (DATA, MEDIA, RAW):
 
 DB_PATH = DATA / "db.json"
 ADMIN_KEY = os.environ.get("JOGO_KEY", "troque-esta-chave")
-PUBLIC_HOST = os.environ.get("JOGO_HOST", "192.168.0.81")
+
+
+def detect_ip() -> str:
+    """IP desta máquina na rede local — o que o roteador (DHCP) deu pra ela.
+
+    Não abre conexão de verdade: só descobre qual interface sairia pra fora.
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
+PUBLIC_HOST = os.environ.get("JOGO_HOST") or detect_ip()
 PORT = int(os.environ.get("JOGO_PORT", "8099"))
 
 # yt-dlp precisa de um JS runtime pra resolver os formatos do YouTube.
 _YTDLP_VENV = BASE / ".venv" / "bin" / "yt-dlp"
 YTDLP = os.environ.get("JOGO_YTDLP") or (str(_YTDLP_VENV) if _YTDLP_VENV.exists() else "yt-dlp")
-NODE = os.environ.get("JOGO_NODE") or "/home/miguel/.hermes/node/bin/node"
-YT_ARGS = ["--js-runtimes", f"node:{NODE}", "--remote-components", "ejs:github",
-           "--no-warnings", "--no-update"]
+NODE = os.environ.get("JOGO_NODE") or shutil.which("node") or ""
+YT_ARGS = ["--remote-components", "ejs:github", "--no-warnings", "--no-update"]
+if NODE:
+    YT_ARGS += ["--js-runtimes", f"node:{NODE}"]
 
 DEFAULT_DB: dict[str, Any] = {
     "settings": {"value": 1, "offset": 45},

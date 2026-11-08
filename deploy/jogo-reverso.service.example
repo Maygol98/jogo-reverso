@@ -7,9 +7,9 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=%h/jogo-reverso
 Environment=JOGO_KEY=troque-esta-chave
-Environment=JOGO_HOST=192.168.0.81
 Environment=JOGO_PORT=8099
-Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# JOGO_HOST fica de fora de proposito: o IP e detectado sozinho (DHCP)
+Environment=PATH=%h/jogo-reverso/.venv/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=%h/jogo-reverso/.venv/bin/python %h/jogo-reverso/app.py
 Restart=always
 RestartSec=3
