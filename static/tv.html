@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jogo Reverso · Telão</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#07080b;color:#e8edf7;
+    font-family:ui-rounded,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{display:grid;grid-template-columns:1.15fr .85fr;gap:0}
+  .left{display:flex;flex-direction:column;justify-content:center;align-items:center;
+    padding:6vh 4vw;background:radial-gradient(90% 80% at 50% 0%,#141a26,#07080b 70%);text-align:center}
+  .kicker{font-size:14px;letter-spacing:.4em;color:#5b6474;margin-bottom:3vh;text-transform:uppercase}
+  .who{font-size:clamp(40px,9vw,140px);font-weight:900;line-height:1;letter-spacing:-.02em;
+    max-width:100%;overflow-wrap:anywhere}
+  .who.armed{color:#ff2d55;animation:glow 1.6s ease-in-out infinite}
+  .who.buzzed{color:#ffd60a}
+  .who.idle{color:#39404f}
+  @keyframes glow{0%,100%{text-shadow:0 0 30px rgba(255,45,85,.15)}50%{text-shadow:0 0 70px rgba(255,45,85,.55)}}
+  .sub{margin-top:2.4vh;font-size:clamp(16px,2vw,26px);color:#8b95a7;max-width:80%}
+  .answer{margin-top:3vh;font-size:clamp(20px,3vw,46px);font-weight:800;color:#5ef2a0;
+    opacity:0;transform:translateY(8px);transition:.35s}
+  .answer.on{opacity:1;transform:none}
+  .right{border-left:1px solid #171c26;padding:6vh 3vw;display:flex;flex-direction:column}
+  .rtitle{font-size:13px;letter-spacing:.34em;color:#5b6474;text-transform:uppercase;margin-bottom:2.5vh}
+  .plist{display:flex;flex-direction:column;gap:1.1vh;overflow:hidden;flex:1}
+  .p{display:flex;align-items:center;justify-content:space-between;gap:1vw;
+    padding:1.5vh 1.4vw;border-radius:14px;background:#0e121a;border:1px solid #151a24}
+  .p.hot{background:#1c1608;border-color:#4d3d09}
+  .pname{font-size:clamp(16px,1.6vw,26px);font-weight:700;overflow-wrap:anywhere}
+  .pscore{font-size:clamp(18px,1.9vw,32px);font-weight:900;color:#ffd60a;font-variant-numeric:tabular-nums}
+  .empty{color:#39404f;font-size:20px}
+  .footer{margin-top:2vh;font-size:12px;color:#2e3542;letter-spacing:.2em}
+
+  /* ---------- tema claro ---------- */
+  html[data-theme="light"] body{background:#f4f6f9;color:#10151f}
+  html[data-theme="light"] .left{background:radial-gradient(90% 80% at 50% 0%,#ffffff,#eef1f6 70%)}
+  html[data-theme="light"] .right{border-left-color:#e0e4ec;background:#eceff4}
+  html[data-theme="light"] .kicker,html[data-theme="light"] .rtitle{color:#6b7484}
+  html[data-theme="light"] .who.idle{color:#b6bdc9}
+  html[data-theme="light"] .who.armed{color:#e11d48}
+  html[data-theme="light"] .who.buzzed{color:#b08900}
+  html[data-theme="light"] .sub{color:#5d6675}
+  html[data-theme="light"] .answer{color:#0b7a4b}
+  html[data-theme="light"] .p{background:#fff;border-color:#e2e6ee}
+  html[data-theme="light"] .p.hot{background:#fff8e1;border-color:#f0d47a}
+  html[data-theme="light"] .pname{color:#10151f}
+  html[data-theme="light"] .pscore{color:#a07d00}
+  html[data-theme="light"] .empty{color:#aab2c0}
+  html[data-theme="light"] .footer{color:#aab2c0}
+
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="kicker">Jogo Reverso</div>
+    <div class="who idle" id="who">AGUARDANDO</div>
+    <div class="sub" id="sub">O administrador vai começar o jogo</div>
+    <div class="answer" id="answer"></div>
+  </div>
+  <div class="right">
+    <div class="rtitle">Placar</div>
+    <div class="plist" id="plist"><div class="empty">Ninguém entrou ainda</div></div>
+    <div class="footer">192.168.0.81:8099</div>
+  </div>
+<script>
+const $ = s => document.querySelector(s);
+let ws, st, prev;
+
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function connect(){
+  const p = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${p}://${location.host}/ws?role=tv`);
+  ws.onmessage = e => {
+    let m; try{ m = JSON.parse(e.data); }catch(_){ return; }
+    if(m.type === 'state'){ prev = st; st = m.state; render(); }
+  };
+  ws.onclose = () => setTimeout(connect, 1200);
+}
+
+function render(){
+  if(!st) return;
+  const who = $('#who'), sub = $('#sub'), ans = $('#answer');
+  who.className = 'who';
+
+  if(st.buzzer){
+    who.classList.add('buzzed');
+    who.textContent = st.buzzer.name;
+    sub.textContent = 'apertou primeiro — diga a música!';
+  } else if(st.phase === 'armed'){
+    who.classList.add('armed');
+    who.textContent = 'APERTA!';
+    sub.textContent = `música ${st.cursor + 1} de ${st.total} — tocando ao contrário`;
+  } else if(st.phase === 'reveal'){
+    who.classList.add('buzzed');
+    who.textContent = st.revealed ? 'RESPOSTA' : 'PAUSA';
+    sub.textContent = '';
+  } else {
+    who.classList.add('idle');
+    who.textContent = 'AGUARDANDO';
+    sub.textContent = st.total ? 'O administrador vai começar o jogo' : 'Sem músicas na fila';
+  }
+
+  if(st.revealed && st.track && st.track.title){
+    ans.textContent = st.track.title;
+    ans.classList.add('on');
+  } else {
+    ans.classList.remove('on');
+    ans.textContent = '';
+  }
+
+  const list = $('#plist');
+  if(!st.players.length){
+    list.innerHTML = '<div class="empty">Ninguém entrou ainda</div>';
+  } else {
+    list.innerHTML = st.players.map(p =>
+      `<div class="p ${st.buzzer && st.buzzer.id === p.id ? 'hot' : ''}">
+         <span class="pname">${esc(p.name)}</span>
+         <span class="pscore">${p.score}</span>
+       </div>`).join('');
+  }
+}
+
+/* tema: segue a escolha do admin (mesma origem) ou ?theme=light */
+(function(){
+  const qs = new URLSearchParams(location.search).get('theme');
+  let t = qs;
+  if(!t){ try{ t = localStorage.getItem('jr_theme'); }catch(e){} }
+  document.documentElement.setAttribute('data-theme', t || 'dark');
+  window.addEventListener('storage', e => {
+    if(e.key === 'jr_theme') document.documentElement.setAttribute('data-theme', e.newValue || 'dark');
+  });
+})();
+
+connect();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+websockets
+qrcode[pil]
+pillow
+numpy
+yt-dlp

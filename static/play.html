@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Jogo Reverso</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{
+    background:radial-gradient(120% 90% at 50% 0%,#141a26 0%,#0b0d12 55%,#07080b 100%);
+    color:#e8edf7;font-family:ui-rounded,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex;flex-direction:column;align-items:center;
+    padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom));
+    user-select:none;touch-action:manipulation;
+  }
+  .hidden{display:none!important}
+  #login{width:100%;max-width:380px;margin:auto;text-align:center}
+  #login h1{font-size:clamp(26px,9vw,40px);letter-spacing:.14em;margin:0 0 6px;color:#fff}
+  #login h1 span{color:#ff2d55}
+  .sub{color:#7d8798;margin:0 0 32px;font-size:14px;letter-spacing:.02em}
+  input{width:100%;padding:16px;border-radius:14px;border:2px solid #232a38;background:#101521;
+    color:#fff;font-size:17px;outline:none;text-align:center}
+  input:focus{border-color:#ff2d55}
+  #enter{margin-top:12px;width:100%;padding:16px;border-radius:14px;border:0;background:#ff2d55;
+    color:#fff;font-size:17px;font-weight:800;letter-spacing:.08em}
+  #enter:active{transform:scale(.98)}
+  .err{color:#ff6b81;font-size:13px;min-height:18px;margin:10px 0 0}
+
+  header{width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center;
+    padding:4px 2px;font-size:14px;color:#8b95a7}
+  #me{font-weight:700;color:#e8edf7;font-size:15px}
+  #score{font-variant-numeric:tabular-nums;font-weight:700;color:#ffd60a}
+
+  .status{height:26px;font-size:12px;letter-spacing:.18em;color:#6d7688;margin:4px 0 2px;
+    text-transform:uppercase;font-weight:700}
+
+  .buzz{
+    width:min(74vw,330px);aspect-ratio:1;border-radius:50%;
+    border:6px solid #202634;background:#12161f;color:#4d566a;
+    font-size:clamp(18px,6.4vw,30px);font-weight:900;letter-spacing:.06em;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:0 14px;transition:transform .12s,background .2s,box-shadow .2s,color .2s,border-color .2s;
+    margin:auto;line-height:1.1;overflow:hidden;
+  }
+  .buzz.armed{
+    background:radial-gradient(circle at 50% 32%,#ff5773,#c00f35 70%,#8c0a26);
+    color:#fff;border-color:#ff9aae;
+    animation:pulse 1.15s ease-out infinite;
+  }
+  .buzz.mine{
+    background:radial-gradient(circle at 50% 32%,#ffe066,#ffc400 65%,#c99700);
+    color:#241a00;border-color:#fff1a8;box-shadow:0 0 44px rgba(255,214,10,.45);
+  }
+  .buzz.taken{background:#1a1f2b;color:#8b95a7;border-color:#2b3344}
+  .buzz.squeeze{transform:scale(.94)}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(255,45,85,.55)}
+    70%{box-shadow:0 0 0 26px rgba(255,45,85,0)}
+    100%{box-shadow:0 0 0 0 rgba(255,45,85,0)}
+  }
+
+  .board{width:100%;max-width:520px;margin-top:auto;padding-top:10px}
+  .row{display:flex;justify-content:space-between;padding:7px 10px;border-radius:10px;
+    font-size:14px;color:#99a2b4;font-variant-numeric:tabular-nums}
+  .row.buzzrow{background:#1a1f2b;color:#fff;font-weight:700}
+  .row b{color:#e8edf7}
+  .tag{font-size:10px;letter-spacing:.12em;color:#4d566a;margin:6px 0 2px 10px}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>JOGO<span>·</span>REVERSO</h1>
+  <p class="sub">A música toca ao contrário. Reconheceu? Aperte.</p>
+  <input id="name" placeholder="Seu nome" maxlength="24" autocomplete="off" autocapitalize="words">
+  <button id="enter">ENTRAR</button>
+  <p class="err" id="err"></p>
+</div>
+
+<div id="game" class="hidden" style="display:flex;flex-direction:column;flex:1;width:100%;align-items:center">
+  <header>
+    <div id="me">—</div>
+    <div id="score">0 pts</div>
+  </header>
+  <div class="status" id="status">AGUARDA</div>
+  <div style="flex:1;display:flex;align-items:center;width:100%">
+    <button id="buzz" class="buzz" disabled>AGUARDE</button>
+  </div>
+  <div class="board" id="board"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let pid = localStorage.getItem('jr_pid');
+let token = localStorage.getItem('jr_token');
+let myName = localStorage.getItem('jr_name');
+let ws = null, st = null, lastBuzz = 0, wakeLock = null, retry = 0;
+
+/* ---- sons do jogo (The Voice no buzz, acerto/erro no julgamento) ---- */
+let actx = null, sbuf = {}, lastJudge = null, wasBuzzer = false;
+async function initSfx(){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const carregar = async n => {
+      const r = await fetch('/static/sfx/' + n + '.mp3');
+      sbuf[n] = await actx.decodeAudioData(await r.arrayBuffer());
+    };
+    await Promise.all(['buzz', 'acerto', 'erro'].map(carregar));
+  }catch(e){}
+}
+function unlockSfx(){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state === 'suspended') actx.resume();
+  }catch(e){}
+}
+function playSfx(n){
+  try{
+    if(!actx || !sbuf[n]) return;
+    const s = actx.createBufferSource(), g = actx.createGain();
+    s.buffer = sbuf[n];
+    g.gain.value = 1;
+    s.connect(g); g.connect(actx.destination);
+    s.start();
+  }catch(e){}
+}
+
+function err(m){ $('#err').textContent = m; }
+
+async function doJoin(){
+  const name = $('#name').value.trim();
+  if(name.length < 2){ err('Escreva seu nome.'); return; }
+  try{
+    const r = await fetch('/api/join', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    const d = await r.json();
+    pid = d.pid; token = d.token; myName = d.name;
+    localStorage.setItem('jr_pid', pid);
+    localStorage.setItem('jr_token', token);
+    localStorage.setItem('jr_name', myName);
+    start();
+  }catch(e){ err('Não deu: ' + e.message); }
+}
+
+function start(){
+  $('#login').classList.add('hidden');
+  $('#game').classList.remove('hidden');
+  $('#me').textContent = myName || '—';
+  connect();
+  keepAwake();
+  unlockSfx();
+  initSfx();
+  setInterval(()=>{ if(ws && ws.readyState===1) ws.send(JSON.stringify({type:'ping'})); }, 25000);
+  setInterval(async ()=>{
+    if(ws && ws.readyState===1) return;
+    try{
+      const r = await fetch('/api/state');
+      if(r.ok){ st = await r.json(); render(); }
+    }catch(e){}
+  }, 2500);
+}
+
+function connect(){
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws?role=player&token=${encodeURIComponent(token)}`);
+  ws.onopen = () => { retry = 0; };
+  ws.onmessage = e => {
+    let m; try{ m = JSON.parse(e.data); }catch(_){ return; }
+    if(m.type === 'state'){ const prev = st; st = m.state; render(prev); }
+    if(m.type === 'error'){ localStorage.clear(); location.reload(); }
+  };
+  ws.onclose = () => {
+    retry = Math.min(retry + 1, 6);
+    setTimeout(connect, 400 * retry);
+  };
+}
+
+async function keepAwake(){
+  try{
+    if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+  }catch(e){}
+}
+
+function buzz(){
+  const now = Date.now();
+  if(now - lastBuzz < 700) return;
+  lastBuzz = now;
+  if(!st || st.phase !== 'armed' || st.buzzer) return;
+  unlockSfx();
+  if(navigator.vibrate) navigator.vibrate(45);
+  const b = $('#buzz');
+  b.classList.add('squeeze');
+  setTimeout(()=>b.classList.remove('squeeze'), 130);
+  if(ws && ws.readyState === 1) ws.send(JSON.stringify({type:'buzz'}));
+  else fetch('/api/buzz', {method:'POST', headers:{'Content-Type':'application/json'},
+         body: JSON.stringify({token})}).catch(()=>{});
+}
+
+function render(prev){
+  if(!st) return;
+  const b = $('#buzz');
+  const mine = st.buzzer && st.buzzer.id === pid;
+  b.className = 'buzz';
+  if(st.buzzer){
+    b.disabled = true;
+    b.textContent = mine ? 'VOCÊ!' : st.buzzer.name.slice(0,12).toUpperCase();
+    b.classList.add(mine ? 'mine' : 'taken');
+    $('#status').textContent = mine ? 'VOCÊ APERTOU! DIGA A MÚSICA' : 'ALGUÉM APERTOU';
+    if(mine && navigator.vibrate) navigator.vibrate([0,60,60,60]);
+  } else if(st.phase === 'armed'){
+    b.disabled = false;
+    b.classList.add('armed');
+    b.textContent = 'APERTE!';
+    $('#status').textContent = 'MÚSICA TOCANDO';
+    if(prev && prev.phase !== 'armed' && navigator.vibrate) navigator.vibrate(30);
+  } else {
+    b.disabled = true;
+    b.textContent = st.phase === 'reveal' ? 'REVELADO' : 'AGUARDE';
+    $('#status').textContent = st.phase === 'reveal' ? 'RESPOSTA NO TELÃO' : 'AGUARDE O ADMIN';
+  }
+
+  // som do botao do The Voice quando eu viro o desafiante
+  const souEu = !!(st.buzzer && st.buzzer.id === pid);
+  if(souEu && !wasBuzzer) playSfx('buzz');
+  wasBuzzer = souEu;
+
+  // som de acerto/erro quando o admin julga
+  const j = st.judge || {seq: 0, pid: null, ok: null};
+  if(lastJudge === null){
+    lastJudge = j.seq || 0;
+  } else if((j.seq || 0) !== lastJudge){
+    lastJudge = j.seq;
+    if(j.pid === pid) playSfx(j.ok ? 'acerto' : 'erro');
+  }
+
+  const me = st.players.find(p => p.id === pid);
+  $('#score').textContent = (me ? me.score : 0) + ' pts';
+
+  const rows = st.players.map(p =>
+    `<div class="row ${st.buzzer && st.buzzer.id===p.id?'buzzrow':''}">
+       <b>${escapeHtml(p.name)}</b><span>${p.score} pts</span>
+     </div>`).join('');
+  $('#board').innerHTML = st.players.length ? `<div class="tag">PLACAR</div>${rows}` : '';
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+$('#enter').addEventListener('click', doJoin);
+$('#name').addEventListener('keydown', e => { if(e.key === 'Enter') doJoin(); });
+
+const btn = $('#buzz');
+btn.addEventListener('pointerdown', e => { e.preventDefault(); buzz(); });
+btn.addEventListener('contextmenu', e => e.preventDefault());
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible'){
+    keepAwake();
+    if(!ws || ws.readyState > 1) connect();
+  }
+});
+
+if(pid && token){ start(); } else { $('#name').focus(); }
+</script>
+</body>
+</html>

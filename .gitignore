@@ -1,0 +1,12 @@
+# runtime
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# estado e mídia (não versionar)
+data/
+media/
+
+# logs
+*.log

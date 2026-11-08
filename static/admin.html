@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jogo Reverso · Admin</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:#080a0f;color:#e8edf7;
+    font-family:ui-rounded,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  button{font-family:inherit;cursor:pointer;border:0;border-radius:10px;font-weight:700}
+  button:active{transform:translateY(1px)}
+  .hidden{display:none!important}
+  a{color:#ff6b81;text-decoration:none;font-size:13px}
+
+  /* login */
+  #login{max-width:340px;margin:18vh auto;text-align:center;padding:0 20px}
+  #login h1{font-size:24px;letter-spacing:.12em;margin-bottom:6px}
+  #login p{color:#6d7688;font-size:13px;margin:0 0 20px}
+  #login input{width:100%;padding:14px;border-radius:12px;border:2px solid #232a38;
+    background:#0f131c;color:#fff;font-size:16px;text-align:center;outline:none}
+  #login button{margin-top:10px;width:100%;padding:14px;background:#ff2d55;color:#fff;font-size:15px}
+
+  #app{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);min-height:100vh}
+  @media(max-width:900px){#app{grid-template-columns:1fr}}
+
+  .main{padding:20px 22px 26px;display:flex;flex-direction:column;gap:16px;
+    border-right:1px solid #141922}
+  .side{padding:20px 18px 40px;background:#0a0d14;display:flex;flex-direction:column;gap:22px;
+    max-height:100vh;overflow:auto}
+
+  header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .themebox{display:flex;align-items:center;gap:2px;flex:none}
+  .brand{font-size:13px;letter-spacing:.22em;color:#7a8496;font-weight:800}
+  .brand b{color:#ff2d55}
+  .badge{display:inline-block;margin-left:8px;padding:3px 9px;border-radius:20px;font-size:10px;
+    letter-spacing:.12em;background:#1a1f2b;color:#8b95a7;vertical-align:middle}
+  .badge.armed{background:#3a0f1a;color:#ff6b81}
+  .badge.buzzed{background:#3a2f05;color:#ffd60a}
+  .badge.reveal{background:#0d3325;color:#5ef2a0}
+
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .gamebar{justify-content:flex-end;align-items:center;padding:0 20px}
+  .gamebar button{min-width:170px}
+  @media (max-width:640px){
+    .gamebar{flex-direction:column-reverse;gap:10px;padding:0}
+    .gamebar button{width:100%;min-width:0;padding:14px}
+  }
+  .actions button{padding:10px 14px;font-size:13px;background:#161b25;color:#cfd6e3;border:1px solid #222a38}
+  .actions button:hover{background:#1d232f}
+  .actions .primary{background:#ff2d55;color:#fff;border-color:#ff2d55}
+  .actions .primary:hover{background:#ff4568}
+
+  .stage{background:#0c1017;border:1px solid #171d28;border-radius:16px;padding:20px;display:flex;
+    flex-direction:column;gap:16px}
+  .tracktitle{font-size:22px;font-weight:800;line-height:1.25;word-break:break-word}
+  .trackmeta{font-size:12px;color:#6d7688;margin-top:4px;letter-spacing:.04em}
+
+  .buzzcard{display:none;background:linear-gradient(160deg,#2a2004,#141005);border:1px solid #4d3d09;
+    border-radius:14px;padding:16px 18px;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .buzzcard.on{display:flex;animation:pop .18s ease-out}
+  @keyframes pop{from{transform:scale(.98);opacity:.6}to{transform:none;opacity:1}}
+  .buzzcard .who{font-size:26px;font-weight:900;color:#ffd60a}
+  .buzzcard .who small{display:block;font-size:11px;letter-spacing:.18em;color:#8a7420;
+    font-weight:700;margin-bottom:2px}
+  .bbtns{display:flex;gap:10px}
+  .bbtns button{padding:13px 22px;font-size:15px}
+  .ok{background:#12b76a;color:#04170d}
+  .no{background:#2b1a1f;color:#ff8fa3;border:1px solid #4a2230}
+  .done{background:#12b76a;color:#04170d;padding:12px 20px;border-radius:10px;font-weight:900;
+    font-size:15px;letter-spacing:.04em}
+
+  .player{background:#0c1017;border:1px solid #171d28;border-radius:16px;padding:16px 20px 18px;
+    display:flex;flex-direction:column;gap:12px}
+  .player.dim{opacity:.45;pointer-events:none}
+  .bar{height:7px;background:#1b2230;border-radius:20px;cursor:pointer;position:relative}
+  .fill{height:100%;width:0%;background:#ff2d55;border-radius:20px;transition:width .08s linear}
+  .ptop{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+  .pctrl svg{width:20px;height:20px;display:block}
+  .pctrl .big svg{width:24px;height:24px}
+  .pmode{display:flex;align-items:center;justify-content:center;gap:10px;padding-top:2px}
+  .mlab{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#5b6474;
+    text-transform:uppercase;transition:color .15s}
+  .mlab.ativo{color:#e8edf7}
+  .switch{width:52px;height:28px;border-radius:20px;background:#1b2230;border:1px solid #222a38;
+    position:relative;flex:none;padding:0;transition:background .18s,border-color .18s}
+  .switch .knob{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;
+    background:#7a8496;transition:left .18s,background .18s}
+  .switch.on{background:#12b76a;border-color:#12b76a}
+  .switch.on .knob{left:26px;background:#04170d}
+  .tlabel{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#6d7688;
+    font-weight:800;margin-right:2px}
+  .time{font-size:12px;color:#7a8496;font-variant-numeric:tabular-nums}
+  .chip{background:#161b25;color:#9aa4b6;border:1px solid #222a38;border-radius:20px;
+    font-size:11px;padding:5px 11px;font-weight:700}
+  .chip:hover{background:#1d232f;color:#dfe6f2}
+  .chip.on{background:#12b76a;color:#04170d;border-color:#12b76a}
+  .pctrl{display:flex;align-items:center;justify-content:center;gap:12px}
+  .pctrl button{width:44px;height:44px;border-radius:50%;background:#1b2230;color:#dfe6f2;
+    font-size:15px;display:flex;align-items:center;justify-content:center;flex:none;
+    transition:background .15s,color .15s}
+  .pctrl button:hover{background:#242c3c}
+  .pctrl button.big{width:60px;height:60px;background:#ff2d55;color:#fff;font-size:21px}
+  .pctrl button.big:hover{background:#ff4568}
+  .pctrl button:disabled{opacity:.35;cursor:not-allowed}
+
+  .iconbtn{background:transparent;border:1px solid transparent;border-radius:9px;color:inherit;
+    font-size:16px;padding:5px 8px;line-height:1}
+  .iconbtn:hover{background:rgba(128,128,128,.15)}
+  .iconbtn svg{width:18px;height:18px;display:block}
+  .hleft{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
+
+  /* menu lateral */
+  #overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;
+    transition:opacity .2s;z-index:40}
+  #overlay.on{opacity:1;pointer-events:auto}
+  #drawer{position:fixed;top:0;left:0;bottom:0;width:min(330px,86vw);background:#0c1017;
+    border-right:1px solid #1c2230;transform:translateX(-105%);transition:transform .22s ease;
+    z-index:50;padding:18px 20px 24px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+  #drawer.open{transform:none}
+  .dhead{display:flex;align-items:center;justify-content:space-between;font-size:13px;
+    letter-spacing:.16em;text-transform:uppercase;color:#8b95a7;font-weight:800}
+  .dlabel{font-size:12.5px;color:#7a8496;line-height:1.5}
+  .dqr{width:100%;max-width:230px;aspect-ratio:1;background:#fff;border-radius:12px;padding:8px;
+    align-self:center}
+  .durl{font-size:15px;font-weight:800;color:#fff;text-align:center;word-break:break-all}
+  .dlink{font-size:13px;text-align:center}
+  .dsep{height:1px;background:#1c2230;margin:6px 0}
+  .dhelp{margin:0;padding-left:18px;font-size:12.5px;color:#9aa4b6;line-height:1.7}
+
+
+  .hint{font-size:12.5px;color:#6d7688;line-height:1.5}
+  .hint b{color:#cfd6e3}
+
+  .qrlabel{font-size:11px;letter-spacing:.16em;color:#6d7688;text-transform:uppercase}
+  .qrurl{font-size:16px;font-weight:800;color:#fff;margin:4px 0 6px;word-break:break-all}
+
+  h2{font-size:11px;letter-spacing:.2em;color:#5b6474;text-transform:uppercase;margin:0 0 10px;
+    display:flex;align-items:center;gap:8px}
+  button.mini{margin-left:auto;background:#1a1f2b;color:#7a8496;font-size:10px;font-weight:700;
+    letter-spacing:.06em;padding:4px 8px;border-radius:7px;font-family:inherit;cursor:pointer;border:1px solid #222a38}
+  button.mini:hover{background:#3a0f1a;color:#ff8fa3;border-color:#4a2230}
+
+  /* placar */
+  .prow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;
+    background:#0e121a;margin-bottom:6px;border:1px solid #151a24}
+  .prow.hot{background:#1c1608;border-color:#4d3d09}
+  .prow .nm{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .prow .sc{font-size:16px;font-weight:900;color:#ffd60a;font-variant-numeric:tabular-nums;min-width:26px;text-align:right}
+  .prow button{width:26px;height:26px;background:#1a1f2b;color:#9aa4b6;font-size:14px;flex:none}
+  .prow button.del{background:transparent;color:#4d566a;font-size:12px}
+  .prow button:hover{background:#242c3c;color:#fff}
+  .dot{width:7px;height:7px;border-radius:50%;background:#2e3542;flex:none}
+  .dot.on{background:#12b76a}
+  .empty{color:#3d4657;font-size:13px;padding:6px 2px}
+
+  /* fila */
+  .addrow{display:flex;gap:6px;margin-bottom:10px}
+  .addrow input{flex:1;padding:10px 11px;border-radius:10px;border:1px solid #222a38;
+    background:#0f131c;color:#fff;font-size:12.5px;outline:none;min-width:0}
+  .addrow input:focus{border-color:#ff2d55}
+  .addrow button{width:38px;background:#ff2d55;color:#fff;font-size:18px}
+
+  .qitem{padding:8px 10px;border-radius:10px;background:#0e121a;border:1px solid #151a24;margin-bottom:6px;
+    cursor:grab}
+  .qitem.atual{border-color:#ff2d55;background:#170d12}
+  .qitem.dragging{opacity:.4}
+  .qitem.over{border-color:#ffd60a;background:#1a1708}
+  .grip{color:#39404f;font-size:16px;cursor:grab;flex:none;user-select:none;
+    padding:6px 9px;margin:-6px 2px -6px -6px;border-radius:8px;touch-action:none;
+    display:flex;align-items:center}
+  .grip:active{cursor:grabbing;background:rgba(128,128,128,.15)}
+  body.arrastando{user-select:none;-webkit-user-select:none}
+  .nx{font-size:8.5px;letter-spacing:.08em;padding:2px 6px;border-radius:20px;background:#1c1608;
+    color:#ffd60a;font-weight:800;flex:none}
+  .qhead{display:flex;align-items:center;gap:7px}
+  .qhead .qn{font-size:11px;color:#4d566a;font-variant-numeric:tabular-nums;min-width:18px}
+  .qhead .qt{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qhead .qd{font-size:10px;color:#5b6474}
+  .qs{font-size:9px;letter-spacing:.08em;padding:2px 6px;border-radius:20px;font-weight:800;flex:none}
+  .qs.pronto{background:#0d3325;color:#5ef2a0}
+  .qs.baixando{background:#102a3a;color:#61c8f2}
+  .qs.fila{background:#1c2130;color:#8b95a7}
+  .qs.erro{background:#3a0f1a;color:#ff6b81}
+  .qacts{display:flex;gap:5px;margin-top:6px;align-items:center;flex-wrap:wrap}
+  .qacts button{background:#1a1f2b;color:#9aa4b6;font-size:11px;padding:4px 8px}
+  .qacts button:hover{background:#242c3c;color:#fff}
+  .qacts input{width:56px;padding:4px 6px;border-radius:6px;border:1px solid #222a38;
+    background:#0b0f16;color:#fff;font-size:11px;outline:none}
+  .qerr{font-size:10.5px;color:#ff6b81;margin-top:4px;line-height:1.35;word-break:break-word}
+
+  label.cfg{display:flex;align-items:center;justify-content:space-between;font-size:13px;
+    color:#8b95a7;margin-bottom:8px;gap:10px}
+  label.cfg input{width:70px;padding:6px 8px;border-radius:8px;border:1px solid #222a38;
+    background:#0f131c;color:#fff;text-align:center;font-size:13px;outline:none}
+
+
+  /* ---------- tema claro ---------- */
+  html[data-theme="light"] body{background:#f4f6f9;color:#141a24}
+  html[data-theme="light"] .main{border-color:#e3e7ef}
+  html[data-theme="light"] .side{background:#eceff4}
+  html[data-theme="light"] .stage{background:#fff;border-color:#e3e7ef}
+  @media (max-width:640px){
+    header{display:grid;grid-template-columns:1fr auto;
+      grid-template-areas:"left theme";row-gap:0}
+    .hleft{grid-area:left}
+    .themebox{grid-area:theme;justify-self:end}
+    .tlabel{display:none}
+  }
+  html[data-theme="light"] .brand{color:#6b7484}
+  html[data-theme="light"] .tracktitle{color:#0f141d}
+  html[data-theme="light"] .trackmeta{color:#6b7484}
+  html[data-theme="light"] .actions button{background:#fff;border-color:#dde2ea;color:#333c4c}
+  html[data-theme="light"] .actions button:hover{background:#f0f3f8}
+  html[data-theme="light"] .actions .primary{background:#e11d48;border-color:#e11d48;color:#fff}
+  html[data-theme="light"] .player{background:#fff;border-color:#e3e7ef}
+  html[data-theme="light"] .pctrl button{background:#eef1f6;color:#2b3442}
+  html[data-theme="light"] .pctrl button:hover{background:#e2e7f0}
+  html[data-theme="light"] .pctrl button.big{background:#e11d48;color:#fff}
+  html[data-theme="light"] .chip{background:#fff;border-color:#dde2ea;color:#5a6474}
+  html[data-theme="light"] .mlab{color:#8d95a5}
+  html[data-theme="light"] .mlab.ativo{color:#10151f}
+  html[data-theme="light"] .switch{background:#e3e7ef;border-color:#d3d9e4}
+  html[data-theme="light"] .switch .knob{background:#8d95a5}
+  html[data-theme="light"] .tlabel{color:#6b7484}
+  html[data-theme="light"] #drawer{background:#fff;border-right-color:#e3e7ef}
+  html[data-theme="light"] .dhead{color:#6b7484}
+  html[data-theme="light"] .dlabel,html[data-theme="light"] .dhelp{color:#5d6675}
+  html[data-theme="light"] .durl{color:#10151f}
+  html[data-theme="light"] .dsep{background:#e6e9f0}
+  html[data-theme="light"] .bar{background:#e2e6ee}
+  html[data-theme="light"] .time{color:#6b7484}
+  html[data-theme="light"] .hint{color:#5d6675}
+  html[data-theme="light"] .hint b{color:#1b2230}
+  html[data-theme="light"] h2{color:#6b7484}
+  html[data-theme="light"] .prow,html[data-theme="light"] .qitem{background:#fff;border-color:#e6e9f0}
+  html[data-theme="light"] .prow.hot{background:#fff8e1;border-color:#f0d47a}
+  html[data-theme="light"] .prow .nm{color:#1b2230}
+  html[data-theme="light"] .prow button{background:#eef1f6;color:#5a6474}
+  html[data-theme="light"] .prow button:hover{background:#e3e8f0;color:#141a24}
+  html[data-theme="light"] .addrow input,html[data-theme="light"] .qacts input,html[data-theme="light"] label.cfg input{background:#fff;border-color:#dde2ea;color:#141a24}
+  html[data-theme="light"] .qacts button{background:#eef1f6;color:#5a6474}
+  html[data-theme="light"] .qacts button:hover{background:#e3e8f0;color:#141a24}
+  html[data-theme="light"] .qhead .qt{color:#1b2230}
+  html[data-theme="light"] .grip{color:#b3bac7}
+  html[data-theme="light"] .badge{background:#e8ecf3;color:#5a6474}
+  html[data-theme="light"] .badge.armed{background:#fde7ec;color:#b3122f}
+  html[data-theme="light"] .badge.buzzed{background:#fff4cf;color:#8a6a00}
+  html[data-theme="light"] .badge.reveal{background:#ddf7ea;color:#0b7a4b}
+  html[data-theme="light"] .qitem.atual{background:#fff1f3;border-color:#f2a2b0}
+  html[data-theme="light"] .buzzcard{background:linear-gradient(160deg,#fff6dd,#fffdf7);border-color:#f0d47a}
+  html[data-theme="light"] .buzzcard .who{color:#8a6a00}
+  html[data-theme="light"] .buzzcard .who small{color:#a8892f}
+  html[data-theme="light"] .no{background:#fdecef;color:#b3122f;border-color:#f3c2cc}
+  html[data-theme="light"] .empty{color:#8d95a5}
+  html[data-theme="light"] .qrurl{color:#10151f}
+  html[data-theme="light"] .qs.pronto{background:#ddf7ea;color:#0b7a4b}
+  html[data-theme="light"] .qs.baixando{background:#e0f1fb;color:#0d6a94}
+  html[data-theme="light"] .qs.fila{background:#eceff4;color:#5a6474}
+  html[data-theme="light"] .qs.erro{background:#fde8ec;color:#b3122f}
+  html[data-theme="light"] .nx{background:#fff4cf;color:#8a6a00}
+  html[data-theme="light"] button.mini{background:#e8ecf3;color:#6b7484;border-color:#dde2ea}
+  html[data-theme="light"] button.mini:hover{background:#fdecef;color:#b3122f;border-color:#f3c2cc}
+  #btnTheme{background:transparent;border:1px solid transparent;font-size:15px;padding:2px 6px;
+    border-radius:8px;line-height:1;color:inherit}
+  #btnTheme:hover{background:rgba(128,128,128,.15)}
+
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#12b76a;
+    color:#04170d;padding:10px 18px;border-radius:10px;font-weight:800;font-size:13px;
+    opacity:0;pointer-events:none;transition:.25s}
+  #toast.on{opacity:1}
+  #toast.err{background:#ff2d55;color:#fff}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>JOGO·REVERSO</h1>
+  <p>Painel do administrador — digite a chave</p>
+  <input id="keyin" type="password" placeholder="chave" autocomplete="off">
+  <button id="btngo">ENTRAR</button>
+</div>
+
+<div id="app" class="hidden">
+  <div class="main">
+    <header>
+      <div class="hleft">
+        <button id="btnMenu" class="iconbtn" title="menu">☰</button>
+        <div class="brand">JOGO<b>·</b>REVERSO <span class="badge" id="phaseBadge">parado</span></div>
+      </div>
+      <div class="themebox">
+        <span class="tlabel">Tema</span>
+        <button id="btnTheme" class="iconbtn" title="Alternar tema claro/escuro">🌙</button>
+      </div>
+    </header>
+
+    <div class="actions gamebar">
+      <button id="btnReveal">👁 Revelar resposta</button>
+      <button class="primary" id="btnGame">▶ Iniciar jogo</button>
+    </div>
+
+    <div class="stage">
+      <div>
+        <div class="tracktitle" id="trackTitle">Nenhuma música</div>
+        <div class="trackmeta" id="trackMeta">Adicione uma playlist na coluna ao lado</div>
+      </div>
+
+      <div class="buzzcard" id="buzzcard">
+        <div class="who"><small>APERTOU PRIMEIRO</small><span id="bname">—</span></div>
+        <div class="bbtns" id="bbtns">
+          <button class="ok" id="btnOk">✔ Acertou</button>
+          <button class="no" id="btnNo">✘ Errou</button>
+        </div>
+        <div class="done hidden" id="bdone">✓ pontuou</div>
+      </div>
+
+      <div class="player" id="player">
+        <div class="bar" id="bar"><div class="fill" id="fill"></div></div>
+        <div class="ptop"><span class="time" id="time">0:00 / 1:00</span></div>
+        <div class="pctrl">
+          <button id="btnShuffle" title="Embaralhar a fila e sortear uma música"></button>
+          <button id="btnPrev" title="Música anterior"></button>
+          <button id="btnPlay" class="big" title="Tocar"></button>
+          <button id="btnNext" title="Próxima música"></button>
+          <button id="btnRepeat" title="Tocar esta do começo"></button>
+        </div>
+        <div class="pmode">
+          <span class="mlab ativo" id="mLabRev">Reverso</span>
+          <button id="btnMode" class="switch" role="switch" aria-checked="false"
+                  title="Alternar entre o trecho reverso (jogo) e o original (de frente para trás)">
+            <span class="knob"></span>
+          </button>
+          <span class="mlab" id="mLabOrig">Original</span>
+        </div>
+      </div>
+
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <section>
+      <h2>Placar</h2>
+      <div id="players"><div class="empty">Ninguém entrou ainda</div></div>
+    </section>
+
+    <section>
+      <h2>Fila · <span id="qcount">0</span> <button id="btnClear" class="mini" title="Apagar todas as músicas da fila">🗑 limpar</button></h2>
+      <div class="addrow">
+        <input id="url" placeholder="Link do YouTube ou da playlist">
+        <button id="btnAdd" title="adicionar">+</button>
+      </div>
+      <div id="queue"><div class="empty">Fila vazia</div></div>
+    </section>
+
+    <section>
+      <h2>Ajustes</h2>
+      <label class="cfg">Pontos por acerto <input type="number" id="setValue" min="1" max="100"></label>
+      <label class="cfg">Início do trecho (s) <input type="number" id="setOffset" min="0" max="600"></label>
+      <div class="hint">O trecho de 60 segundos começa nesse segundo. 45s costuma pegar o vocal na maioria das músicas.</div>
+    </section>
+  </div>
+</div>
+
+<div id="overlay"></div>
+<aside id="drawer">
+  <div class="dhead"><span>Jogadores</span><button id="btnCloseDrawer" class="iconbtn" title="fechar">✕</button></div>
+  <div class="dlabel">Aponte a câmera para o QR code ou digite o endereço no navegador do celular:</div>
+  <img class="dqr" src="/api/qr" alt="QR code para entrar no jogo">
+  <div class="durl" id="joinUrl">—</div>
+  <a class="dlink" href="/tv" target="_blank">Abrir o telão ↗</a>
+  <div class="dsep"></div>
+  <div class="dlabel">Como jogar</div>
+  <ol class="dhelp">
+    <li>Entre com seu nome.</li>
+    <li>Ouça o trecho da música ao contrário.</li>
+    <li>Reconheceu? Aperte o botão gigante.</li>
+    <li>Quem aperta primeiro responde.</li>
+  </ol>
+  <div class="dsep"></div>
+  <div class="dlabel">Fonte das músicas: YouTube. Cada rodada toca 60 segundos invertidos; o trecho normal fica no botão do player.</div>
+</aside>
+
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const au = new Audio();
+au.preload = 'auto';
+
+/* efeitos sonoros do julgamento (WebAudio, sem arquivo) */
+const SFX_FILES = {ok: '/static/sfx/acerto.mp3', no: '/static/sfx/erro.mp3'};
+let actx = null;
+function sfx(kind){
+  try{
+    const a = new Audio(SFX_FILES[kind]);
+    a.volume = 1;
+    a.play().catch(() => sfxBeep(kind));
+    return;
+  }catch(e){}
+  sfxBeep(kind);
+}
+function sfxBeep(kind){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state === 'suspended') actx.resume();
+    const t0 = actx.currentTime + 0.01;
+    const tone = (freq, start, dur, type, vol) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t0 + start);
+      g.gain.setValueAtTime(0.0001, t0 + start);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + start + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t0 + start); o.stop(t0 + start + dur + 0.03);
+    };
+    if(kind === 'ok'){
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * 0.085, 0.42, 'sine', 0.22));
+    } else {
+      tone(196, 0, 0.26, 'sawtooth', 0.16);
+      tone(146.83, 0.14, 0.42, 'sawtooth', 0.16);
+    }
+  }catch(e){}
+}
+
+
+let KEY = new URLSearchParams(location.search).get('k') || localStorage.getItem('jr_key') || '';
+let ws = null, st = null, curSrc = '', arming = false, retry = 0;
+let dragging = false, dragId = null, lastTrackId = null;
+
+/* ---------- tema ---------- */
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  try{ localStorage.setItem('jr_theme', t); }catch(e){}
+  const b = document.querySelector('#btnTheme');
+  if(b && typeof ICON !== 'undefined') b.innerHTML = t === 'light' ? ICON.sun : ICON.moon;
+}
+function currentTheme(){
+  try{ return localStorage.getItem('jr_theme') || 'dark'; }catch(e){ return 'dark'; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  applyTheme(currentTheme());
+  const b = document.querySelector('#btnTheme');
+  if(b) b.onclick = () => applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+});
+
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(t){
+  t = Math.max(0, t || 0);
+  return Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+}
+function toast(msg, bad){
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = 'on' + (bad ? ' err' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 2600);
+}
+
+async function api(path, body){
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'X-Key': KEY},
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  if(r.status === 401){ localStorage.removeItem('jr_key'); location.reload(); return null; }
+  const txt = await r.text();
+  if(!r.ok){ toast(txt.replace(/^\{"detail":?|"\}$/g,'') || 'falhou', true); return null; }
+  try{ return JSON.parse(txt); }catch(e){ return {}; }
+}
+
+async function login(){
+  const k = $('#keyin').value.trim();
+  if(!k) return;
+  try{
+    const r = await fetch('/api/auth', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:k})});
+    if(!r.ok) throw new Error('chave errada');
+    KEY = k;
+    localStorage.setItem('jr_key', k);
+    boot();
+  }catch(e){ toast('Chave incorreta.', true); }
+}
+
+function initIcons(){
+  const set = (id, icon) => { const el = document.getElementById(id); if(el) el.innerHTML = icon; };
+  set('btnShuffle', ICON.shuffle);
+  set('btnPrev', ICON.prev);
+  set('btnNext', ICON.next);
+  set('btnRepeat', ICON.repeat);
+  setPlayIcon(false);
+  setModo('rev');
+}
+
+function boot(){
+  $('#login').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  initIcons();
+  connect();
+  setInterval(() => { if(ws && ws.readyState === 1) ws.send('ping'); }, 25000);
+  setInterval(async () => {
+    if(ws && ws.readyState === 1) return;
+    try{
+      const r = await fetch('/api/admin/state', {headers:{'X-Key':KEY}});
+      if(r.ok){ st = await r.json(); render(); }
+    }catch(e){}
+  }, 3000);
+}
+
+function connect(){
+  const p = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${p}://${location.host}/ws?role=admin&k=${encodeURIComponent(KEY)}`);
+  ws.onopen = () => { retry = 0; };
+  ws.onmessage = e => {
+    let m; try{ m = JSON.parse(e.data); }catch(_){ return; }
+    if(m.type === 'state'){ st = m.state; render(); }
+    else if(m.type === 'cmd') cmd(m);
+  };
+  ws.onclose = () => { retry = Math.min(retry + 1, 6); setTimeout(connect, 400 * retry); };
+}
+
+/* ---------------- ícones (mesmo traço pra todos) ---------------- */
+const SVG = (inner, extra) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" ${extra||''}>${inner}</svg>`;
+const ICON = {
+  shuffle: SVG('<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>'),
+  prev:    SVG('<path d="M18 5.5v13L9 12z"/><path d="M6 5.5v13" stroke-width="2.4"/>'),
+  play:    SVG('<path d="M8.2 4.8v14.4L20 12z"/>'),
+  pause:   SVG('<path d="M9.5 4.8v14.4" stroke-width="2.2"/><path d="M14.5 4.8v14.4" stroke-width="2.2"/>'),
+  next:    SVG('<path d="M6 5.5v13L15 12z"/><path d="M18 5.5v13" stroke-width="2.4"/>'),
+  repeat:  SVG('<polyline points="1.5 4 1.5 10 7.5 10"/><path d="M4 15a9 9 0 1 0 2.1-9.4L1.5 10"/>'),
+  moon:    SVG('<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'),
+  sun:     SVG('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+};
+function setPlayIcon(tocando){ const b = $('#btnPlay'); if(b) b.innerHTML = tocando ? ICON.pause : ICON.play; }
+
+/* ---------------- áudio ---------------- */
+let modo = 'rev';          // 'rev' = jogo | 'orig' = de frente pra trás
+
+function srcAtual(){
+  if(!st || !st.current) return '';
+  return modo === 'orig'
+    ? '/media/normal/' + st.current.id + '.mp3'
+    : '/media/' + st.current.id + '.mp3';
+}
+
+function setModo(m, opts){
+  modo = m;
+  const sw = $('#btnMode');
+  if(sw){
+    sw.classList.toggle('on', modo === 'orig');
+    sw.setAttribute('aria-checked', modo === 'orig' ? 'true' : 'false');
+  }
+  const a = $('#mLabRev'), b = $('#mLabOrig');
+  if(a) a.classList.toggle('ativo', modo === 'rev');
+  if(b) b.classList.toggle('ativo', modo === 'orig');
+  if(opts && opts.tocar){
+    setSrc(srcAtual(), true);
+    playLocal(true);
+  }
+}
+
+function setSrc(src, force){
+  if(!src) return;
+  if(curSrc === src && !force) return;
+  curSrc = src;
+  au.src = src;
+  au.load();
+}
+function playLocal(restart){
+  if(!curSrc) return;
+  if(restart) try{ au.currentTime = 0; }catch(e){}
+  au.play().then(() => { $('#hint').innerHTML = ''; })
+    .catch(() => {
+      $('#hint').innerHTML = '<b>O navegador bloqueou o som.</b> Clica no ▶ vermelho pra liberar.';
+    });
+}
+function cmd(m){
+  if(m.cmd === 'play' && m.src){
+    arming = true;
+    if(modo !== 'rev') setModo('rev');
+    setSrc(m.src, true);
+    playLocal(true);
+    setTimeout(() => { arming = false; }, 600);
+  } else if(m.cmd === 'pause'){ au.pause(); }
+  else if(m.cmd === 'resume'){ playLocal(false); }
+  else if(m.cmd === 'restart'){ playLocal(true); }
+}
+
+au.addEventListener('timeupdate', () => {
+  const d = au.duration || 60;
+  $('#fill').style.width = Math.min(100, (au.currentTime / d) * 100) + '%';
+  $('#time').textContent = fmt(au.currentTime) + ' / ' + fmt(d);
+});
+au.addEventListener('playing', () => setPlayIcon(true));
+au.addEventListener('pause', () => setPlayIcon(false));
+au.addEventListener('error', () => { if(curSrc) toast('Não foi possível tocar este áudio.', true); });
+
+$('#bar').addEventListener('click', ev => {
+  if(!au.duration) return;
+  const r = ev.currentTarget.getBoundingClientRect();
+  au.currentTime = ((ev.clientX - r.left) / r.width) * au.duration;
+});
+
+/* ---------------- render ---------------- */
+function render(){
+  if(!st) return;
+
+  const rotulo = {idle: 'parado', armed: 'tocando', buzzed: 'alguém apertou', reveal: 'resposta'}[st.phase] || st.phase;
+  $('#phaseBadge').textContent = rotulo;
+  $('#phaseBadge').className = 'badge ' + st.phase;
+
+  const bg = $('#btnGame');
+  bg.textContent = st.started ? '↻ Reiniciar jogo' : '▶ Iniciar jogo';
+  bg.classList.toggle('primary', !st.started);
+
+  const semJogo = !st.started;
+  $('#player').classList.toggle('dim', semJogo);
+  ['btnShuffle', 'btnPrev', 'btnPlay', 'btnNext', 'btnRepeat', 'btnMode', 'btnReveal']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.disabled = semJogo; });
+  $('#qcount').textContent = st.queue.length;
+  if(st.join_url) $('#joinUrl').textContent = st.join_url;
+
+  // faixa
+  const c = st.current;
+  if(c){
+    $('#trackTitle').textContent = c.title || c.id;
+    const bits = [];
+    if(st.cursor >= 0) bits.push(`música ${st.cursor + 1} de ${st.total}`);
+    if(c.duration) bits.push(`original ${fmt(c.duration)}`);
+    if(c.offset !== null && c.offset !== undefined) bits.push(`trecho ${fmt(c.offset)} → ${fmt((c.offset||0) + 60)}`);
+    if(c.status !== 'pronto') bits.push(`status: ${c.status}`);
+    $('#trackMeta').textContent = bits.join(' · ');
+  } else {
+    $('#trackTitle').textContent = 'Nenhuma música';
+    $('#trackMeta').textContent = 'Adicione uma playlist na coluna ao lado';
+  }
+
+  // faixa nova = volta pro reverso
+  if(st.current && st.current.id !== lastTrackId){
+    lastTrackId = st.current.id;
+    if(modo !== 'rev') setModo('rev');
+    curSrc = '';
+    setSrc(srcAtual());
+  }
+
+  // buzz
+  const bc = $('#buzzcard');
+  if(st.buzzer){
+    bc.classList.add('on');
+    $('#bname').textContent = st.buzzer.name;
+    const j = st.judge || {};
+    const fechou = st.phase === 'reveal' && j.ok === true && j.pid === st.buzzer.id;
+    $('#bbtns').classList.toggle('hidden', fechou);
+    $('#bdone').classList.toggle('hidden', !fechou);
+    $('#btnOk').disabled = fechou; $('#btnNo').disabled = fechou;
+  } else {
+    bc.classList.remove('on');
+    $('#bbtns').classList.remove('hidden');
+    $('#bdone').classList.add('hidden');
+  }
+
+  // dica de estado
+  const h = $('#hint');
+  if(!h.dataset.locked){
+    if(!st.started){
+      h.innerHTML = st.queue.some(q => q.status === 'pronto')
+        ? 'Clique em <b>▶ Iniciar jogo</b> para começar. Os jogadores entram pelo menu ☰.'
+        : 'Adicione músicas na fila ao lado — o download e a inversão acontecem sozinhos.';
+    } else if(st.phase === 'armed' && !st.buzzer)
+      h.innerHTML = '<b>Botões liberados.</b> Quem reconhecer, aperta.';
+    else if(st.phase === 'buzzed')
+      h.innerHTML = '<b>Alguém apertou.</b> Ouça a resposta e marque ✔ ou ✘. Se errar, a música fica parada até você apertar play.';
+    else if(st.phase === 'reveal')
+      h.innerHTML = 'Resposta revelada. Use <b>⏭</b> para a próxima ou <b>♪ trecho normal</b> para ouvir de frente para trás.';
+    else
+      h.innerHTML = 'Aperte <b>▶</b> para tocar. Os jogadores continuam conectados.';
+  }
+
+  // placar
+  const pl = $('#players');
+  if(!st.players.length){
+    pl.innerHTML = '<div class="empty">Ninguém entrou ainda</div>';
+  } else {
+    pl.innerHTML = st.players.map(p => `
+      <div class="prow ${st.buzzer && st.buzzer.id === p.id ? 'hot' : ''}">
+        <span class="dot ${p.online ? 'on' : ''}"></span>
+        <span class="nm">${esc(p.name)}</span>
+        <button data-act="minus" data-pid="${p.id}">−</button>
+        <span class="sc">${p.score}</span>
+        <button data-act="plus" data-pid="${p.id}">+</button>
+        <button data-act="kick" data-pid="${p.id}" class="del">✕</button>
+      </div>`).join('');
+  }
+
+  // fila
+  const q = $('#queue');
+  if(!st.queue.length){
+    q.innerHTML = '<div class="empty">Fila vazia</div>';
+  } else if(!dragging){
+    q.innerHTML = st.queue.map((t, i) => {
+      const isCur = i === st.cursor;
+      const isNext = st.cursor >= 0 && i === st.cursor + 1;
+      return `
+      <div class="qitem ${isCur ? 'atual' : ''}" data-tid="${t.id}">
+        <div class="qhead">
+          <span class="grip" title="Arraste para reordenar">⠿</span>
+          <span class="qn">${i + 1}</span>
+          <span class="qt" title="${esc(t.title || '')}">${esc(t.title || t.id)}</span>
+          ${isNext ? '<span class="nx">PRÓXIMA</span>' : ''}
+          <span class="qd">${t.duration ? fmt(t.duration) : ''}</span>
+          <span class="qs ${t.status}">${t.status}</span>
+        </div>
+        <div class="qacts">
+          <button data-act="tocar" data-tid="${t.id}" title="Toca esta agora, encerrando a rodada atual">▶ tocar</button>
+          <button data-act="prox" data-tid="${t.id}" title="Coloca esta como a próxima da fila">⏭ próxima</button>
+          <button data-act="ouvir" data-tid="${t.id}" title="Ouvir sem liberar os botões">♪ ouvir</button>
+          <input type="number" min="0" max="600" value="${t.offset ?? ''}" data-act="off" data-tid="${t.id}" title="offset em segundos">
+          <button data-act="reproc" data-tid="${t.id}">regravar</button>
+          <button data-act="rm" data-tid="${t.id}" title="remover">✕</button>
+        </div>
+        ${t.error ? `<div class="qerr">${esc(t.error)}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // ajustes
+  if(document.activeElement !== $('#setValue')) $('#setValue').value = st.settings.value;
+  if(document.activeElement !== $('#setOffset')) $('#setOffset').value = st.settings.offset;
+}
+
+/* ---------------- ações ---------------- */
+$('#btnGame').onclick = async () => {
+  if(!st) return;
+  if(!st.started){ await api('/api/start'); return; }
+  if(!confirm('Reiniciar o jogo do começo?\n\nO placar de todos volta a zero e a fila recomeça da primeira música.')) return;
+  await api('/api/restart');
+};
+$('#btnReveal').onclick = () => api('/api/reveal');
+$('#btnPrev').onclick = () => api('/api/prev');
+$('#btnNext').onclick = () => api('/api/next');
+$('#btnRepeat').onclick = () => api('/api/replay');
+$('#btnShuffle').onclick = async () => {
+  const r = await api('/api/random');
+  if(r) toast('Fila embaralhada — sorteando a próxima.');
+};
+let judging = false;
+async function judge(ok){
+  if(judging) return;
+  judging = true;
+  $('#btnOk').disabled = true; $('#btnNo').disabled = true;
+  sfx(ok ? 'ok' : 'no');
+  const r = await api('/api/judge', {ok});
+  judging = false;
+  if(!r){ $('#btnOk').disabled = false; $('#btnNo').disabled = false; }
+}
+$('#btnOk').onclick = () => judge(true);
+$('#btnNo').onclick = () => judge(false);
+$('#btnPlay').onclick = async () => {
+  if(!st || !st.started) return;
+  if(au.paused){
+    if(modo === 'orig'){ setSrc(srcAtual(), true); playLocal(true); return; }
+    await api('/api/resume');
+    playLocal(false);
+  } else {
+    if(modo === 'orig'){ au.pause(); return; }
+    await api('/api/pause');
+  }
+};
+
+$('#btnMode').onclick = async () => {
+  const novo = modo === 'rev' ? 'orig' : 'rev';
+  // ouvir de frente pra trás não pode deixar os jogadores chutarem
+  if(novo === 'orig' && st && st.phase === 'armed') await api('/api/pause');
+  setModo(novo, {tocar: true});
+};
+
+/* menu lateral */
+function openDrawer(){ $('#drawer').classList.add('open'); $('#overlay').classList.add('on'); }
+function closeDrawer(){ $('#drawer').classList.remove('open'); $('#overlay').classList.remove('on'); }
+$('#btnMenu').onclick = openDrawer;
+$('#btnCloseDrawer').onclick = closeDrawer;
+$('#overlay').onclick = closeDrawer;
+document.addEventListener('keydown', ev => { if(ev.key === 'Escape') closeDrawer(); });
+
+$('#btnClear').onclick = async () => {
+  if(!confirm('Apagar TODAS as músicas da fila?\n\nIsso também apaga os clipes baixados/invertidos. Os jogadores e o placar continuam.')) return;
+  if(!confirm('Confirma mesmo? Não tem volta.')) return;
+  const r = await api('/api/queue/clear');
+  if(r) toast(r.removed + ' música(s) removida(s)');
+};
+
+$('#btnAdd').onclick = async () => {
+  const url = $('#url').value.trim();
+  if(!url) return;
+  $('#btnAdd').disabled = true;
+  const r = await api('/api/queue', {url});
+  $('#btnAdd').disabled = false;
+  if(r){ toast(r.added ? `${r.added} música(s) na fila` : 'já estava tudo na fila'); $('#url').value = ''; }
+};
+
+document.addEventListener('click', async ev => {
+  const b = ev.target.closest('button[data-act]');
+  if(!b) return;
+  const act = b.dataset.act;
+  if(act === 'plus') await api('/api/score', {pid:b.dataset.pid, delta:1});
+  if(act === 'minus') await api('/api/score', {pid:b.dataset.pid, delta:-1});
+  if(act === 'kick'){
+    if(confirm('Remover esse jogador?')) await api('/api/player/' + b.dataset.pid + '/kick');
+  }
+  if(act === 'rm') await api('/api/queue/' + b.dataset.tid + '/delete');
+  if(act === 'tocar') await api('/api/play/' + b.dataset.tid);
+  if(act === 'prox') await api('/api/queue/' + b.dataset.tid + '/set-next');
+  if(act === 'reproc'){
+    const inp = document.querySelector(`input[data-act="off"][data-tid="${b.dataset.tid}"]`);
+    await api('/api/queue/' + b.dataset.tid + '/offset', {offset: parseInt(inp.value || 0, 10)});
+    toast('Regravando o trecho...');
+  }
+  if(act === 'ouvir'){
+    const t = (st?.queue || []).find(x => x.id === b.dataset.tid);
+    if(!t) return;
+    arming = true;
+    setSrc('/media/' + t.id + '.mp3');
+    playLocal(true);
+    $('#hint').dataset.locked = '1';
+    $('#hint').innerHTML = '<b>Pré-escuta liberada</b> — isso não arma os botões. Aperta ▶ no player acima pra voltar à rodada.';
+    setTimeout(() => { arming = false; }, 500);
+  }
+});
+
+$('#bar').addEventListener('dblclick', () => {});
+
+const saveCfg = async () => {
+  await api('/api/settings', {
+    value: parseInt($('#setValue').value || 1, 10),
+    offset: parseInt($('#setOffset').value || 45, 10)
+  });
+};
+$('#setValue').onchange = saveCfg;
+$('#setOffset').onchange = saveCfg;
+
+$('#btngo').onclick = login;
+$('#keyin').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
+
+/* ---------- reordenar arrastando (pointer events: mouse + touch) ---------- */
+async function reorder(ids){
+  const r = await api('/api/queue/reorder', {ids});
+  if(!r) toast('Não foi possível reordenar a fila.', true);
+}
+
+let dragEl = null, dragScroll = null, dragMudou = false;
+
+function scrollParent(el){
+  let p = el.parentElement;
+  while(p){
+    const s = getComputedStyle(p);
+    if(/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight + 4) return p;
+    p = p.parentElement;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+
+function startDrag(ev){
+  const grip = ev.target.closest && ev.target.closest('.grip');
+  if(!grip) return;
+  const it = grip.closest('.qitem');
+  if(!it) return;
+  if(ev.pointerType === 'mouse' && ev.button !== 0) return;
+  ev.preventDefault();
+  dragEl = it;
+  dragId = it.dataset.tid;
+  dragMudou = false;
+  dragging = true;
+  dragScroll = scrollParent(it);
+  it.classList.add('dragging');
+  document.body.classList.add('arrastando');
+  if(grip.setPointerCapture && ev.pointerId != null){
+    try{ grip.setPointerCapture(ev.pointerId); }catch(e){}
+  }
+  document.addEventListener('pointermove', moveDrag, {passive:false});
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+}
+
+function moveDrag(ev){
+  if(!dragEl) return;
+  ev.preventDefault();
+  const y = ev.clientY;
+
+  if(dragScroll){
+    const r = dragScroll === document.scrollingElement
+      ? {top:0, bottom:innerHeight}
+      : dragScroll.getBoundingClientRect();
+    if(y < r.top + 64) dragScroll.scrollTop -= 14;
+    else if(y > r.bottom - 64) dragScroll.scrollTop += 14;
+  }
+
+  const itens = [...document.querySelectorAll('.qitem')];
+  for(const el of itens){
+    if(el === dragEl) continue;
+    const r = el.getBoundingClientRect();
+    if(y >= r.top && y <= r.bottom){
+      const antes = y < r.top + r.height / 2;
+      const ref = antes ? el : el.nextSibling;
+      if(ref !== dragEl && el.parentNode){
+        el.parentNode.insertBefore(dragEl, ref);
+        dragMudou = true;
+      }
+      break;
+    }
+  }
+}
+
+async function endDrag(){
+  if(!dragEl) return;
+  document.removeEventListener('pointermove', moveDrag);
+  document.removeEventListener('pointerup', endDrag);
+  document.removeEventListener('pointercancel', endDrag);
+  dragEl.classList.remove('dragging');
+  document.body.classList.remove('arrastando');
+  dragEl = null; dragId = null; dragScroll = null; dragging = false;
+  if(!dragMudou){ if(st) render(); return; }
+  const ids = [...document.querySelectorAll('.qitem')].map(x => x.dataset.tid);
+  await reorder(ids);
+}
+
+document.addEventListener('pointerdown', startDrag);
+
+if(KEY){ boot(); } else { $('#keyin').focus(); }
+</script>
+</body>
+</html>
