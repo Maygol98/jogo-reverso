@@ -289,6 +289,16 @@ ponto duplicado por clique repetido.
 
 ---
 
+## Creditos
+
+Vibecodado por:
+Miguel feat. Hermes Agent
+
+Inspiração:
+Jogo do Neemias
+
+---
+
 ## Licença
 
 MIT — use, copie, mude, jogue com os amigos.
