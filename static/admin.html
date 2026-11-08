@@ -555,8 +555,27 @@ function setModo(m, opts){
   if(b) b.classList.toggle('ativo', modo === 'orig');
   if(opts && opts.tocar){
     setSrc(srcAtual(), true);
-    playLocal(true);
+    if(opts.tempo != null) seekEPlay(opts.tempo); else playLocal(true);
   }
+}
+
+// O clipe invertido é o trecho de 60s espelhado: o segundo t do reverso
+// corresponde a (duração - t) do original — dá pra emendar sem corte.
+function posicaoEspelhada(){
+  const dur = au.duration;
+  if(!isFinite(dur) || dur <= 0) return null;
+  const t = au.currentTime;
+  if(!isFinite(t) || t <= 0.05) return null;
+  return Math.max(0, Math.min(dur - 0.05, dur - t));
+}
+
+function seekEPlay(t){
+  const go = () => {
+    try{ au.currentTime = t; }catch(e){}
+    au.play().catch(() => toast('Clique na página uma vez para liberar o áudio.', true));
+  };
+  if(au.readyState >= 1) go();
+  else au.addEventListener('loadedmetadata', go, {once: true});
 }
 
 function setSrc(src, force){
@@ -769,9 +788,11 @@ $('#btnPlay').onclick = async () => {
 
 $('#btnMode').onclick = async () => {
   const novo = modo === 'rev' ? 'orig' : 'rev';
+  // ao revelar, o original começa no segundo exato em que o reverso parou
+  const alvo = novo === 'orig' ? posicaoEspelhada() : null;
   // ouvir de frente pra trás não pode deixar os jogadores chutarem
   if(novo === 'orig' && st && st.phase === 'armed') await api('/api/pause');
-  setModo(novo, {tocar: true});
+  setModo(novo, {tocar: true, tempo: alvo});
 };
 
 /* menu lateral */

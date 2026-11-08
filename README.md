@@ -15,6 +15,12 @@ julga e controla os pontos.
 Chave do admin: definida na variável `JOGO_KEY` do serviço (veja `.env.example`).
 Sem ela definida, o app usa `troque-esta-chave` — troque antes de usar.
 
+## Emenda reverso → original
+
+O clipe invertido é o trecho de 60s espelhado, então o segundo `t` do reverso
+equivale a `duração - t` do original. Ao trocar o toggle para **Original**
+depois de um acerto, o áudio retoma nesse segundo exato (sem corte entre os dois).
+
 ## Serviço
 
 ```bash
